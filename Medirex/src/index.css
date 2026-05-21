@@ -1,0 +1,281 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 199 89% 48%;
+    --radius: 0.75rem;
+  }
+
+  /* ── Dark Mode Variables ── */
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 96%;
+    --card: 222 47% 10%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 47% 10%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 199 89% 48%;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: "Inter", system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Plus Jakarta Sans", Inter, sans-serif;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl;
+  }
+
+  .glass-card-dark {
+    @apply bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl;
+  }
+
+  .medical-card {
+    @apply bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-card transition-all duration-300;
+  }
+
+  .medical-card:hover {
+    @apply shadow-card-hover -translate-y-0.5;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-medical hover:shadow-medical-lg active:scale-95 inline-flex items-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 text-primary-600 font-semibold px-6 py-3 rounded-xl border-2 border-primary-200 hover:border-primary-300 transition-all duration-200 active:scale-95 inline-flex items-center gap-2;
+  }
+
+  .btn-ghost {
+    @apply text-gray-600 dark:text-slate-300 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-slate-700 font-medium px-4 py-2 rounded-xl transition-all duration-200 inline-flex items-center gap-2;
+  }
+
+  .btn-danger {
+    @apply bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-sm active:scale-95 inline-flex items-center gap-2;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .badge-primary {
+    @apply badge bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300;
+  }
+
+  .badge-success {
+    @apply badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300;
+  }
+
+  .badge-purple {
+    @apply badge bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300;
+  }
+
+  .input-medical {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder:text-gray-400 dark:placeholder:text-slate-500 text-gray-900 dark:text-slate-100 transition-all duration-200;
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold text-medical-navy dark:text-white;
+    font-family: "Plus Jakarta Sans", Inter, sans-serif;
+  }
+
+  .section-subtitle {
+    @apply text-lg text-gray-500 dark:text-slate-400 leading-relaxed max-w-2xl;
+  }
+
+  .kpi-card {
+    @apply medical-card p-6 flex flex-col gap-3;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer;
+  }
+
+  .sidebar-item.active {
+    @apply bg-primary-600 text-white shadow-medical;
+  }
+
+  .sidebar-item:not(.active) {
+    @apply text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white;
+  }
+
+  .stat-ring {
+    @apply relative inline-flex items-center justify-center;
+  }
+
+  .data-table {
+    @apply w-full text-sm;
+  }
+
+  .data-table th {
+    @apply text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider bg-gray-50 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-700;
+  }
+
+  .data-table td {
+    @apply px-4 py-3.5 border-b border-gray-50 dark:border-slate-700/50 text-gray-700 dark:text-slate-300;
+  }
+
+  .data-table tr:hover td {
+    @apply bg-primary-50/50 dark:bg-primary-900/10;
+  }
+
+  .ai-pulse {
+    @apply relative;
+  }
+
+  .ai-pulse::before {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-primary-400 animate-pulse-ring;
+  }
+
+  .skeleton {
+    @apply animate-pulse bg-gray-200 dark:bg-slate-700 rounded;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E1 transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #CBD5E1;
+    border-radius: 20px;
+  }
+
+  .font-display {
+    font-family: "Plus Jakarta Sans", Inter, sans-serif;
+  }
+
+  /* Theme toggle button */
+  .theme-toggle {
+    @apply w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-200 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-primary-600 dark:hover:text-primary-400;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(to right, #0284C7, #10B981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-hero {
+    background: linear-gradient(to right, #ffffff, #BAE6FD, #6EE7B7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .animate-delay-100 { animation-delay: 100ms; }
+  .animate-delay-200 { animation-delay: 200ms; }
+  .animate-delay-300 { animation-delay: 300ms; }
+  .animate-delay-400 { animation-delay: 400ms; }
+  .animate-delay-500 { animation-delay: 500ms; }
+
+  /* Dark mode slide-in */
+  .animate-slide-in {
+    animation: fade-in 0.25s ease-out;
+  }
+
+  /* Global dark mode overrides for hardcoded light mode classes */
+  .dark .text-gray-900,
+  .dark .text-slate-900,
+  .dark .text-gray-800,
+  .dark .text-slate-800 {
+    @apply text-slate-100 !important;
+  }
+  
+  .dark .text-gray-700,
+  .dark .text-slate-700 {
+    @apply text-slate-200 !important;
+  }
+  
+  .dark .text-gray-600,
+  .dark .text-slate-600 {
+    @apply text-slate-300 !important;
+  }
+  
+  .dark .text-gray-500,
+  .dark .text-slate-500 {
+    @apply text-slate-400 !important;
+  }
+  
+  .dark .bg-gray-50,
+  .dark .bg-slate-50 {
+    @apply bg-slate-800/50 border-slate-700 !important;
+  }
+
+  .dark .bg-white:not(.glass-card, .glass-card-dark) {
+    @apply bg-slate-800 border-slate-700 !important;
+  }
+}
