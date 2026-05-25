@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KPICard from '@/components/features/KPICard';
 import { MOCK_LAB_TESTS } from '@/constants/mockData';
@@ -21,9 +22,9 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 const PIPELINE_STAGES = ['Order Received', 'Sample Collected', 'In Processing', 'Analysis Done', 'Report Ready'];
 
-interface ReportModalProps { test: LabTest; onClose: () => void; }
-function ReportModal({ test, onClose }: ReportModalProps) {
-  const [status, setStatus] = useState(test.status);
+interface ReportModalProps { test: LabTest; onClose: () => void; onSave: (updated: LabTest) => void }
+function ReportModal({ test, onClose, onSave }: ReportModalProps) {
+  const [status, setStatus] = useState<LabTest['status']>(test.status);
   const [result, setResult] = useState(test.result || '');
   const [saved, setSaved] = useState(false);
   return (
@@ -77,7 +78,11 @@ function ReportModal({ test, onClose }: ReportModalProps) {
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={onClose} className="flex-1 btn-ghost border border-gray-200 justify-center">Close</button>
-              <button onClick={() => setSaved(true)} className="flex-1 btn-primary justify-center">
+              <button onClick={() => {
+                const updated: LabTest = { ...test, status, result };
+                onSave(updated);
+                setSaved(true);
+              }} className="flex-1 btn-primary justify-center">
                 <CheckCircle className="w-4 h-4" /> Save Report
               </button>
             </div>
@@ -89,12 +94,65 @@ function ReportModal({ test, onClose }: ReportModalProps) {
 }
 
 export default function LabDashboard() {
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'dashboard';
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [viewReport, setViewReport] = useState<string | null>(null);
   const [tests, setTests] = useState(MOCK_LAB_TESTS);
   const [toast, setToast] = useState<string | null>(null);
   const [showNewTest, setShowNewTest] = useState(false);
+  const [newForm, setNewForm] = useState({ patient: '', test: '', date: '', priority: 'Normal', orderedBy: '', homeCollection: false });
+
+  // Update filter automatically when entering 'reports' tab
+  useEffect(() => {
+    if (activeTab === 'reports') {
+      setStatusFilter('Report Ready');
+    } else if (activeTab === 'dashboard') {
+      setStatusFilter('All');
+    }
+  }, [activeTab]);
+
+  const handleSaveReport = (updated: LabTest) => {
+    setTests(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t));
+    showToast('Report saved');
+    setViewReport(null);
+  };
+
+  const handleCreateOrder = (form: { patient: string; test: string; date: string; priority: string; homeCollection?: boolean }) => {
+    const id = `lab${Date.now()}`;
+    const newTest: LabTest = {
+      id,
+      patientName: form.patient || 'Walk-in',
+      testName: form.test,
+      testCode: `T-${Math.floor(Math.random() * 9000) + 1000}`,
+      date: form.date || new Date().toLocaleDateString(),
+      category: 'General',
+      priority: (form.priority as LabTest['priority']) || 'Normal',
+      orderedBy: 'N/A',
+      status: 'Pending',
+      price: 49.99,
+      result: undefined,
+    };
+    setTests(prev => [newTest, ...prev]);
+    showToast('New test order created');
+  };
+
+  const handleDownloadReport = (id: string) => {
+    const test = tests.find(t => t.id === id);
+    if (!test) return showToast('Report not found');
+    const content = `Report for ${test.patientName} - ${test.testName}\nStatus: ${test.status}\nResult: ${test.result || 'Pending'}`;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${test.testCode || test.id}-report.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Report downloaded');
+  };
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
@@ -119,7 +177,7 @@ export default function LabDashboard() {
 
   return (
     <DashboardLayout>
-      {selectedTest && <ReportModal test={selectedTest} onClose={() => setViewReport(null)} />}
+      {selectedTest && <ReportModal test={selectedTest} onClose={() => setViewReport(null)} onSave={handleSaveReport} />}
 
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl text-sm font-medium animate-fade-in flex items-center gap-2">
@@ -131,24 +189,33 @@ export default function LabDashboard() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowNewTest(false)}>
           <div className="bg-white rounded-2xl p-6 max-w-md w-full animate-scale-in" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-gray-900 font-display mb-4">New Test Order</h3>
-            <div className="space-y-3">
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1.5">Patient Name</label><input className="input-medical" placeholder="Search patient..." /></div>
-              <div><label className="block text-xs font-semibold text-gray-600 mb-1.5">Test Type</label>
-                <select className="input-medical">
-                  <option>Complete Blood Count (CBC)</option><option>Lipid Panel</option><option>HbA1c</option><option>Kidney Function Panel</option><option>MRI Brain</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs font-semibold text-gray-600 mb-1.5">Priority</label>
-                  <select className="input-medical"><option>Normal</option><option>Urgent</option><option>STAT</option></select>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Patient Name</label>
+                  <input value={newForm.patient} onChange={e => setNewForm(f => ({ ...f, patient: e.target.value }))} className="input-medical" placeholder="Search patient..." />
                 </div>
-                <div><label className="block text-xs font-semibold text-gray-600 mb-1.5">Ordered By</label><input className="input-medical" placeholder="Dr. Name" /></div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Test Type</label>
+                  <select value={newForm.test} onChange={e => setNewForm(f => ({ ...f, test: e.target.value }))} className="input-medical">
+                    <option value="">Select test...</option>
+                    <option>Complete Blood Count (CBC)</option><option>Lipid Panel</option><option>HbA1c</option><option>Kidney Function Panel</option><option>MRI Brain</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Priority</label>
+                    <select value={newForm.priority} onChange={e => setNewForm(f => ({ ...f, priority: e.target.value }))} className="input-medical"><option>Normal</option><option>Urgent</option><option>STAT</option></select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Ordered By</label>
+                    <input value={newForm.orderedBy} onChange={e => setNewForm(f => ({ ...f, orderedBy: e.target.value }))} className="input-medical" placeholder="Dr. Name" />
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={() => setShowNewTest(false)} className="flex-1 btn-ghost border border-gray-200 justify-center">Cancel</button>
-              <button onClick={() => { setShowNewTest(false); showToast('New test order created'); }} className="flex-1 btn-primary justify-center">Create Order</button>
-            </div>
+              <div className="flex gap-3 mt-5">
+                <button onClick={() => setShowNewTest(false)} className="flex-1 btn-ghost border border-gray-200 justify-center">Cancel</button>
+                <button onClick={() => { handleCreateOrder(newForm); setShowNewTest(false); setNewForm({ patient: '', test: '', date: '', priority: 'Normal', orderedBy: '', homeCollection: false }); }} disabled={!newForm.test || !newForm.patient} className="flex-1 btn-primary justify-center">Create Order</button>
+              </div>
           </div>
         </div>
       )}
@@ -164,93 +231,99 @@ export default function LabDashboard() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard title="Total Tests Today" value={tests.length} icon={FlaskConical} change={8} />
-          <KPICard title="Pending Collection" value={pending} icon={Clock} iconColor="text-amber-600" iconBg="bg-amber-50" />
-          <KPICard title="In Processing" value={processing} icon={Microscope} iconColor="text-primary-600" />
-          <KPICard title="Reports Ready" value={ready} icon={CheckCircle} iconColor="text-emerald-600" iconBg="bg-emerald-50" />
-        </div>
+        {activeTab === 'dashboard' && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <KPICard title="Total Tests Today" value={tests.length} icon={FlaskConical} change={8} />
+            <KPICard title="Pending Collection" value={pending} icon={Clock} iconColor="text-amber-600" iconBg="bg-amber-50" />
+            <KPICard title="In Processing" value={processing} icon={Microscope} iconColor="text-primary-600" />
+            <KPICard title="Reports Ready" value={ready} icon={CheckCircle} iconColor="text-emerald-600" iconBg="bg-emerald-50" />
+          </div>
+        )}
 
         {/* Sample Tracking Pipeline */}
-        <div className="medical-card p-5">
-          <h2 className="font-bold text-gray-900 font-display mb-4">Sample Tracking Pipeline</h2>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {PIPELINE_STAGES.map((stage, i) => (
-              <React.Fragment key={stage}>
-                <button onClick={() => setStatusFilter(i === 0 ? 'Pending' : i === 1 ? 'Sample Collected' : i === 2 ? 'Processing' : i === 3 ? 'Completed' : 'Report Ready')}
-                  className={`flex-shrink-0 rounded-xl p-4 min-w-[140px] text-center transition-all hover:scale-105 ${
-                    i === 0 ? 'bg-gray-100 text-gray-700' :
-                    i === 1 ? 'bg-sky-50 text-sky-700' :
-                    i === 2 ? 'bg-amber-50 text-amber-700' :
-                    i === 3 ? 'bg-purple-50 text-purple-700' :
-                    'bg-emerald-50 text-emerald-700'
-                  }`}>
-                  <div className="text-2xl font-bold font-display">{pipelineCounts[stage] || 0}</div>
-                  <div className="text-xs font-semibold mt-1">{stage}</div>
-                </button>
-                {i < PIPELINE_STAGES.length - 1 && (
-                  <div className="flex items-center text-gray-300 flex-shrink-0"><ChevronRight className="w-5 h-5" /></div>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-
-        {/* Test List */}
-        <div className="medical-card p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <h2 className="font-bold text-gray-900 font-display">Test Requests</h2>
-            <div className="flex gap-2 flex-wrap">
-              {['All', 'Pending', 'Processing', 'Report Ready'].map(s => (
-                <button key={s} onClick={() => setStatusFilter(s)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${statusFilter === s ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                  {s}
-                </button>
+        {(activeTab === 'dashboard' || activeTab === 'tracking') && (
+          <div className="medical-card p-5">
+            <h2 className="font-bold text-gray-900 font-display mb-4">Sample Tracking Pipeline</h2>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {PIPELINE_STAGES.map((stage, i) => (
+                <React.Fragment key={stage}>
+                  <button onClick={() => setStatusFilter(i === 0 ? 'Pending' : i === 1 ? 'Sample Collected' : i === 2 ? 'Processing' : i === 3 ? 'Completed' : 'Report Ready')}
+                    className={`flex-shrink-0 rounded-xl p-4 min-w-[140px] text-center transition-all hover:scale-105 ${
+                      i === 0 ? 'bg-gray-100 text-gray-700' :
+                      i === 1 ? 'bg-sky-50 text-sky-700' :
+                      i === 2 ? 'bg-amber-50 text-amber-700' :
+                      i === 3 ? 'bg-purple-50 text-purple-700' :
+                      'bg-emerald-50 text-emerald-700'
+                    }`}>
+                    <div className="text-2xl font-bold font-display">{pipelineCounts[stage] || 0}</div>
+                    <div className="text-xs font-semibold mt-1">{stage}</div>
+                  </button>
+                  {i < PIPELINE_STAGES.length - 1 && (
+                    <div className="flex items-center text-gray-300 flex-shrink-0"><ChevronRight className="w-5 h-5" /></div>
+                  )}
+                </React.Fragment>
               ))}
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary-500" />
-              </div>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr><th>Patient</th><th>Test</th><th>Category</th><th>Priority</th><th>Ordered By</th><th>Status</th><th>Price</th><th>Actions</th></tr>
-              </thead>
-              <tbody>
-                {filtered.map(test => (
-                  <tr key={test.id}>
-                    <td className="font-medium text-gray-900 text-sm">{test.patientName}</td>
-                    <td>
-                      <div>
-                        <p className="text-sm text-gray-900">{test.testName}</p>
-                        <p className="text-xs text-gray-400">{test.testCode}</p>
-                      </div>
-                    </td>
-                    <td><span className="text-xs text-gray-600">{test.category}</span></td>
-                    <td><span className={PRIORITY_COLORS[test.priority]}>{test.priority}</span></td>
-                    <td><span className="text-xs text-gray-500">{test.orderedBy}</span></td>
-                    <td><span className={STATUS_COLORS[test.status] || 'badge'}>{test.status}</span></td>
-                    <td><span className="font-medium text-sm">${test.price}</span></td>
-                    <td>
-                      <div className="flex gap-1">
-                        <button onClick={() => setViewReport(test.id)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="View / Update">
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                        {(test.status === 'Report Ready' || test.status === 'Completed') && (
-                          <button onClick={() => showToast(`Downloading report for ${test.patientName}`)} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Download PDF">
-                            <Download className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+        )}
+
+        {/* Test List */}
+        {(activeTab === 'dashboard' || activeTab === 'requests' || activeTab === 'reports' || activeTab === 'tracking') && (
+          <div className="medical-card p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <h2 className="font-bold text-gray-900 font-display">Test Requests</h2>
+              <div className="flex gap-2 flex-wrap">
+                {['All', 'Pending', 'Processing', 'Report Ready'].map(s => (
+                  <button key={s} onClick={() => setStatusFilter(s)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${statusFilter === s ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                    {s}
+                  </button>
                 ))}
-              </tbody>
-            </table>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary-500" />
+                </div>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr><th>Patient</th><th>Test</th><th>Category</th><th>Priority</th><th>Ordered By</th><th>Status</th><th>Price</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                  {filtered.map(test => (
+                    <tr key={test.id}>
+                      <td className="font-medium text-gray-900 text-sm">{test.patientName}</td>
+                      <td>
+                        <div>
+                          <p className="text-sm text-gray-900">{test.testName}</p>
+                          <p className="text-xs text-gray-400">{test.testCode}</p>
+                        </div>
+                      </td>
+                      <td><span className="text-xs text-gray-600">{test.category}</span></td>
+                      <td><span className={PRIORITY_COLORS[test.priority]}>{test.priority}</span></td>
+                      <td><span className="text-xs text-gray-500">{test.orderedBy}</span></td>
+                      <td><span className={STATUS_COLORS[test.status] || 'badge'}>{test.status}</span></td>
+                      <td><span className="font-medium text-sm">${test.price}</span></td>
+                      <td>
+                        <div className="flex gap-1">
+                          <button onClick={() => setViewReport(test.id)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="View / Update">
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          {(test.status === 'Report Ready' || test.status === 'Completed') && (
+                            <button onClick={() => handleDownloadReport(test.id)} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Download PDF">
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );

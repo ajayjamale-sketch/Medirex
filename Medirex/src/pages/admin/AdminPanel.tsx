@@ -71,6 +71,7 @@ export default function AdminPanel() {
   // 4. Tasks
   const [tasks, setTasks] = useState(INITIAL_TASKS);
   const [newTask, setNewTask] = useState({ title: '', assignee: '', category: 'Compliance', priority: 'Medium' });
+  const [taskFilter, setTaskFilter] = useState('All');
 
   // 5. Documents
   const [documents, setDocuments] = useState(INITIAL_DOCUMENTS);
@@ -138,6 +139,9 @@ export default function AdminPanel() {
   const [threads, setThreads] = useState(INITIAL_CHATS);
   const [activeThreadId, setActiveThreadId] = useState(threads[0]?.id || '');
   const [commsInput, setCommsInput] = useState('');
+  const [announcementText, setAnnouncementText] = useState('');
+  const [blockedPorts, setBlockedPorts] = useState<string[]>([]);
+  const [faqCacheCleared, setFaqCacheCleared] = useState(false);
 
   const activeThread = threads.find(t => t.id === activeThreadId);
 
@@ -199,6 +203,7 @@ export default function AdminPanel() {
   const handleUploadSimulate = () => {
     const size = Math.random() * 3 + 0.5;
     setSimulatedSize(prev => Number((prev + size).toFixed(1)));
+    setDocuments(prev => [{ id: `DOC-${Date.now()}`, name: `New_Upload_${Date.now()}.pdf`, type: 'pdf', size: `${size.toFixed(1)} MB`, uploadDate: new Date().toISOString().split('T')[0], category: 'Operational', uploader: 'Admin', url: '#' }, ...prev]);
     showToast(`Document uploaded successfully (+${size.toFixed(1)} MB)`);
   };
 
@@ -208,6 +213,71 @@ export default function AdminPanel() {
     setIps([...ips, newIp]);
     showToast(`IP range ${newIp} whitelisted successfully`);
     setNewIp('');
+  };
+
+  const handleArchiveDocument = (docId: string) => {
+    const doc = documents.find(d => d.id === docId);
+    if (!doc) return;
+    setDocuments(prev => prev.filter(d => d.id !== docId));
+    setAuditLogs(prev => [{ id: `LOG-${Date.now()}`, action: 'Document Archived', user: 'Admin', role: 'Admin', ipAddress: '127.0.0.1', resource: doc.name, status: 'Passed', timestamp: new Date().toLocaleTimeString(), details: `Archived document ${doc.name}` }, ...prev]);
+    showToast(`Archived document ${doc.name}`);
+  };
+
+  const downloadCSV = (filename: string, rows: string[]) => {
+    const csv = rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportFinancialCSV = () => {
+    const rows = [['Invoice ID', 'Patient', 'Date', 'Amount', 'Status'].join(',')];
+    invoices.forEach(i => rows.push([i.id, i.patientName, i.date, i.amount.toFixed(2), i.status].join(',')));
+    downloadCSV('invoices_export.csv', rows);
+    showToast('Billing CSV ledger exported');
+  };
+
+  const handleDiagnosticsSigned = () => {
+    setAuditLogs(prev => [{ id: `LOG-${Date.now()}`, action: 'Diagnostics Checklist Signed', user: 'Admin', role: 'Admin', ipAddress: '127.0.0.1', resource: 'Encryption Signatures', status: 'Passed', timestamp: new Date().toLocaleTimeString(), details: 'Signed encryption diagnostics checklist' }, ...prev]);
+    showToast('Diagnostics checklist signed');
+  };
+
+  const handlePublishAnnouncement = () => {
+    if (!announcementText.trim()) return showToast('Announcement is empty');
+    const threadId = `BCAST-${Date.now()}`;
+    const newThread = {
+      id: threadId,
+      user: { name: 'Broadcast', role: 'System', avatar: '', status: 'online' },
+      unreadCount: 0,
+      messages: [{ id: `m_${Date.now()}`, sender: 'System', text: announcementText, timestamp: 'Just Now', self: false }]
+    };
+    setThreads(prev => [newThread, ...prev]);
+    setAnnouncementText('');
+    showToast('Announcement published');
+  };
+
+  const handleEmergencyBroadcast = () => {
+    const msg = 'Emergency Staff Broadcast: Please check emergency dashboard immediately.';
+    setThreads(prev => [{ id: `EMERG-${Date.now()}`, user: { name: 'Emergency', role: 'System', avatar: '', status: 'online' }, unreadCount: 0, messages: [{ id: `m_${Date.now()}`, sender: 'System', text: msg, timestamp: 'Just Now', self: false }] }, ...prev]);
+    showToast('Broadcast notification sent to all staff');
+  };
+
+  const handleTogglePort = (port: string, label: string) => {
+    setBlockedPorts(prev => prev.includes(port) ? prev.filter(p => p !== port) : [...prev, port]);
+    showToast(`${label} ${blockedPorts.includes(port) ? 'unrestricted' : 'restricted'}`);
+  };
+
+  const handleGenerateFDAStockReport = () => {
+    const rows = [['Name', 'Category', 'Stock', 'Unit', 'Expiry', 'Status'].join(',')];
+    inventory.forEach(d => rows.push([d.name, d.category, String(d.stock), d.unit, d.expiryDate, d.status].join(',')));
+    downloadCSV('fda_stock_report.csv', rows);
+    showToast('Dispatched stock report to FDA');
   };
 
   const handleCreateInvoice = (e: React.FormEvent) => {
@@ -648,7 +718,7 @@ export default function AdminPanel() {
                   <h3 className="font-bold text-gray-900 text-sm font-display">Section 1: Task Category Selection</h3>
                   <div className="flex gap-2">
                     {['All', 'Billing', 'Clinical', 'Compliance', 'IT'].map(c => (
-                      <button key={c} className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-200">
+                      <button key={c} onClick={() => setTaskFilter(c)} className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${taskFilter === c ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                         {c}
                       </button>
                     ))}
@@ -679,7 +749,7 @@ export default function AdminPanel() {
                 <div className="medical-card p-5 space-y-3">
                   <h3 className="font-bold text-gray-900 text-sm font-display">Section 3: Operations Kanban Tasks</h3>
                   <div className="space-y-2">
-                    {tasks.map(tsk => (
+                    {tasks.filter(t => taskFilter === 'All' || t.category === taskFilter).map(tsk => (
                       <div key={tsk.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50">
                         <div>
                           <p className="text-xs font-bold text-slate-800">{tsk.title}</p>
@@ -800,7 +870,7 @@ export default function AdminPanel() {
                             <td><span className="badge text-[10px] badge-primary">{doc.category}</span></td>
                             <td className="text-xs text-slate-500">{doc.uploadDate}</td>
                             <td>
-                              <button onClick={() => showToast(`Archived document ${doc.name}`)} className="text-[10px] text-red-500 font-bold hover:underline">
+                              <button onClick={() => handleArchiveDocument(doc.id)} className="text-[10px] text-red-500 font-bold hover:underline">
                                 Archive
                               </button>
                             </td>
@@ -924,7 +994,7 @@ export default function AdminPanel() {
                 <div className="medical-card p-5 border border-primary-100 bg-primary-50/20">
                   <h3 className="font-bold text-gray-900 text-xs font-display mb-1">Section 5: EMR Column Decryption Audit Mode</h3>
                   <p className="text-[10px] text-slate-500 mb-2">Logs details of all columns queried during active patient file views.</p>
-                  <button onClick={() => showToast('Diagnostics checklist signed')} className="btn-ghost border border-primary-200 text-xs py-1.5">
+                  <button onClick={handleDiagnosticsSigned} className="btn-ghost border border-primary-200 text-xs py-1.5">
                     Generate Encryption Signatures
                   </button>
                 </div>
@@ -937,7 +1007,7 @@ export default function AdminPanel() {
                 {/* Section 1: Header Filter */}
                 <div className="medical-card p-4 flex flex-wrap items-center justify-between gap-3">
                   <h3 className="font-bold text-gray-900 text-sm font-display">Section 1: Ledger Operations</h3>
-                  <button onClick={() => showToast('Billing CSV ledger exported')} className="btn-secondary text-xs py-1.5">
+                  <button onClick={handleExportFinancialCSV} className="btn-secondary text-xs py-1.5">
                     Export Financial CSV
                   </button>
                 </div>
@@ -1053,7 +1123,7 @@ export default function AdminPanel() {
                 {/* Section 1: ticket search */}
                 <div className="medical-card p-4 flex flex-wrap items-center justify-between gap-3">
                   <h3 className="font-bold text-gray-900 text-sm font-display">Section 1: Support Tickets</h3>
-                  <button onClick={() => showToast('FAQ cache cleared')} className="btn-secondary text-xs py-1.5">
+                  <button onClick={() => { setFaqCacheCleared(true); showToast('FAQ cache cleared'); }} className="btn-secondary text-xs py-1.5">
                     Clear Helpdesk Cache
                   </button>
                 </div>
@@ -1316,7 +1386,7 @@ export default function AdminPanel() {
                 {/* Section 1: search */}
                 <div className="medical-card p-4 flex flex-wrap items-center justify-between gap-3">
                   <h3 className="font-bold text-gray-900 text-sm font-display">Section 1: Drug Registry</h3>
-                  <button onClick={() => showToast('Dispatched stock report to FDA')} className="btn-secondary text-xs py-1.5">
+                  <button onClick={handleGenerateFDAStockReport} className="btn-secondary text-xs py-1.5">
                     Generate FDA Stock Report
                   </button>
                 </div>
@@ -1574,10 +1644,10 @@ export default function AdminPanel() {
                 <div className="medical-card p-5">
                   <h3 className="font-bold text-gray-900 text-sm font-display mb-3">Section 4: API Port Controller</h3>
                   <div className="grid grid-cols-2 gap-2 text-center text-xs">
-                    <button onClick={() => showToast('Port 8080 restricted')} className="p-3 border border-slate-200 rounded-xl hover:border-red-400 bg-white">
+                    <button onClick={() => handleTogglePort('8080', 'Internal Port 8080')} className="p-3 border border-slate-200 rounded-xl hover:border-red-400 bg-white">
                       Restrict Internal Port 8080
                     </button>
-                    <button onClick={() => showToast('Public API Gateway disabled')} className="p-3 border border-slate-200 rounded-xl hover:border-red-400 bg-white">
+                    <button onClick={() => handleTogglePort('api-gateway', 'Public API Gateway')} className="p-3 border border-slate-200 rounded-xl hover:border-red-400 bg-white">
                       Disable Public API Gateway
                     </button>
                   </div>
@@ -1601,7 +1671,7 @@ export default function AdminPanel() {
                 {/* Section 1: Header Chat Search */}
                 <div className="medical-card p-4 flex flex-wrap items-center justify-between gap-3">
                   <h3 className="font-bold text-gray-900 text-sm font-display">Section 1: Communication Hub</h3>
-                  <button onClick={() => showToast('Broadcast notification sent to all staff')} className="btn-danger text-xs py-1.5 px-3">
+                  <button onClick={handleEmergencyBroadcast} className="btn-danger text-xs py-1.5 px-3">
                     Emergency Staff Broadcast
                   </button>
                 </div>
@@ -1613,11 +1683,11 @@ export default function AdminPanel() {
                       key={thr.id}
                       onClick={() => setActiveThreadId(thr.id)}
                       className={`p-3 border rounded-xl text-left transition-all ${
-                        activeThreadId === thr.id ? 'border-primary-500 bg-primary-50' : 'border-slate-100 bg-slate-50'
+                        activeThreadId === thr.id ? 'border-primary-500 bg-primary-50 dark:border-primary-500/50 dark:bg-primary-900/20' : 'border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/50'
                       }`}
                     >
-                      <p className="text-xs font-bold text-slate-800 truncate">{thr.user.name}</p>
-                      <p className="text-[9px] text-slate-400 truncate mt-0.5">{thr.user.role}</p>
+                      <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{thr.user.name}</p>
+                      <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate mt-0.5">{thr.user.role}</p>
                       {thr.unreadCount > 0 && (
                         <span className="inline-block text-[9px] font-semibold bg-primary-600 text-white px-1.5 py-0.5 rounded-full mt-1">
                           {thr.unreadCount} unread
@@ -1630,12 +1700,12 @@ export default function AdminPanel() {
                 {/* Section 3: Interactive Messenger */}
                 {activeThread && (
                   <div className="medical-card p-5 space-y-3">
-                    <h3 className="font-bold text-gray-900 text-sm font-display">Section 3: Live Chat with {activeThread.user.name}</h3>
-                    <div className="h-40 overflow-y-auto border border-slate-100 rounded-xl p-3 space-y-2 bg-slate-50/50 text-xs">
+                    <h3 className="font-bold text-gray-900 dark:text-white text-sm font-display">Section 3: Live Chat with {activeThread.user.name}</h3>
+                    <div className="h-40 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-xl p-3 space-y-2 bg-slate-50/50 dark:bg-slate-900/50 text-xs">
                       {activeThread.messages.map(msg => (
                         <div key={msg.id} className={`flex ${msg.self ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-[80%] rounded-2xl px-3 py-1.5 ${
-                            msg.self ? 'bg-primary-600 text-white' : 'bg-slate-200 text-slate-800'
+                            msg.self ? 'bg-primary-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
                           }`}>
                             <p className="text-xs leading-relaxed">{msg.text}</p>
                             <span className="text-[8px] opacity-70 block text-right mt-0.5">{msg.timestamp}</span>
@@ -1659,18 +1729,18 @@ export default function AdminPanel() {
 
                 {/* Section 4: Broadcast Announcements Form */}
                 <div className="medical-card p-5">
-                  <h3 className="font-bold text-gray-900 text-sm font-display mb-2">Section 4: Broadcast News</h3>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm font-display mb-2">Section 4: Broadcast News</h3>
                   <div className="flex gap-2">
-                    <input className="input-medical text-xs flex-1" placeholder="Announcement header text..." />
-                    <button onClick={() => showToast('Announcement published')} className="btn-primary text-xs py-2 px-4">
+                    <input value={announcementText} onChange={e => setAnnouncementText(e.target.value)} className="input-medical text-xs flex-1" placeholder="Announcement header text..." />
+                    <button onClick={handlePublishAnnouncement} className="btn-primary text-xs py-2 px-4">
                       Publish
                     </button>
                   </div>
                 </div>
 
                 {/* Section 5: Communication Performance */}
-                <div className="medical-card p-4 bg-primary-50/20 border border-primary-100 text-xs text-slate-500">
-                  <p className="font-bold text-slate-800 mb-1">Section 5: Chat metrics</p>
+                <div className="medical-card p-4 bg-primary-50/20 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="font-bold text-slate-800 dark:text-slate-300 mb-1">Section 5: Chat metrics</p>
                   Average system read rate: 94.2% within 5 minutes of dispatch.
                 </div>
               </div>

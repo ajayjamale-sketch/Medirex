@@ -59,6 +59,115 @@ function RestockModal({ drug, onClose, onSuccess }: RestockModalProps) {
   );
 }
 
+function AddMedicineModal({ onClose, onAdd, initialDrug }: { onClose: () => void; onAdd: (drug: DrugInventory) => void; initialDrug?: DrugInventory }) {
+  const [form, setForm] = useState(() => ({
+    name: initialDrug?.name || '',
+    genericName: initialDrug?.genericName || '',
+    category: initialDrug?.category || '',
+    stock: initialDrug?.stock ?? 0,
+    unit: initialDrug?.unit || 'tabs',
+    expiryDate: initialDrug?.expiryDate || '',
+    manufacturer: initialDrug?.manufacturer || '',
+    price: initialDrug?.price ?? 0,
+    reorderLevel: initialDrug?.reorderLevel ?? 0,
+    batchNumber: initialDrug?.batchNumber || ''
+  }));
+  const [submitted, setSubmitted] = useState(false);
+  const handleAdd = () => {
+    const id = initialDrug?.id || `drug${Date.now()}`;
+    const expiry = form.expiryDate || new Date().toISOString().split('T')[0];
+    const status: DrugInventory['status'] = (form.stock === 0) ? 'Out of Stock' : (new Date(expiry) < new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) ? 'Expiring Soon' : (form.stock < form.reorderLevel ? 'Low Stock' : 'In Stock'));
+    const newDrug: DrugInventory = {
+      id,
+      name: form.name,
+      genericName: form.genericName,
+      category: form.category || 'General',
+      stock: form.stock,
+      unit: form.unit,
+      expiryDate: expiry,
+      manufacturer: form.manufacturer || 'Unknown',
+      price: Number(form.price),
+      reorderLevel: Number(form.reorderLevel),
+      status,
+      batchNumber: form.batchNumber || `B-${Date.now()}`
+    };
+    setSubmitted(true);
+    setTimeout(() => { onAdd(newDrug); onClose(); }, 900);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl p-6 max-w-lg w-full animate-scale-in" onClick={e => e.stopPropagation()}>
+        {submitted ? (
+          <div className="text-center py-4">
+            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3"><Check className="w-6 h-6 text-emerald-600" /></div>
+            <p className="font-bold text-gray-900">Medicine Added</p>
+            <p className="text-sm text-gray-500 mt-1">New medicine has been added to inventory.</p>
+          </div>
+        ) : (
+          <>
+            <h3 className="font-bold text-gray-900 font-display mb-4">Add New Medicine</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Name</label>
+                <input value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} className="input-medical" placeholder="Medicine name" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Generic Name</label>
+                  <input value={form.genericName} onChange={e => setForm(f => ({...f, genericName: e.target.value}))} className="input-medical" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category</label>
+                  <input value={form.category} onChange={e => setForm(f => ({...f, category: e.target.value}))} className="input-medical" placeholder="e.g., Antidiabetic" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Stock</label>
+                  <input type="number" value={form.stock} onChange={e => setForm(f => ({...f, stock: Number(e.target.value)}))} className="input-medical" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Unit</label>
+                  <input value={form.unit} onChange={e => setForm(f => ({...f, unit: e.target.value}))} className="input-medical" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reorder Level</label>
+                  <input type="number" value={form.reorderLevel} onChange={e => setForm(f => ({...f, reorderLevel: Number(e.target.value)}))} className="input-medical" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Expiry Date</label>
+                  <input type="date" value={form.expiryDate} onChange={e => setForm(f => ({...f, expiryDate: e.target.value}))} className="input-medical" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Price ($)</label>
+                  <input type="number" value={form.price} onChange={e => setForm(f => ({...f, price: Number(e.target.value)}))} className="input-medical" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Manufacturer</label>
+                  <input value={form.manufacturer} onChange={e => setForm(f => ({...f, manufacturer: e.target.value}))} className="input-medical" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Batch Number</label>
+                  <input value={form.batchNumber} onChange={e => setForm(f => ({...f, batchNumber: e.target.value}))} className="input-medical" />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={onClose} className="flex-1 btn-ghost border border-gray-200 justify-center">Cancel</button>
+              <button onClick={handleAdd} disabled={!form.name} className="flex-1 btn-primary justify-center disabled:opacity-50">Add Medicine</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface DispenseModalProps { rx: { patient: string; meds: string; doctor: string }; onClose: () => void; }
 function DispenseModal({ rx, onClose }: DispenseModalProps) {
   const [step, setStep] = useState<1|2>(1);
@@ -100,6 +209,7 @@ export default function PharmacyDashboard() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [showRestock, setShowRestock] = useState<DrugInventory | null | undefined>(undefined);
+  const [showAddMedicine, setShowAddMedicine] = useState<DrugInventory | 'new' | null>(null);
   const [dispenseRx, setDispenseRx] = useState<{ patient: string; meds: string; doctor: string } | null>(null);
   const [inventory, setInventory] = useState(MOCK_DRUG_INVENTORY);
   const [toast, setToast] = useState<string | null>(null);
@@ -118,11 +228,22 @@ export default function PharmacyDashboard() {
     showToast(`Restock order placed for ${name}`);
   };
 
-  const pendingRx = [
+  const handleAddMedicine = (drug: DrugInventory) => {
+    setInventory(prev => {
+      const exists = prev.find(d => d.id === drug.id);
+      if (exists) {
+        return prev.map(d => d.id === drug.id ? drug : d);
+      }
+      return [drug, ...prev];
+    });
+    showToast(`${drug.name} added to inventory`);
+  };
+
+  const [pendingRx, setPendingRx] = useState([
     { patient: 'Sarah Johnson', doctor: 'Dr. Harrison', meds: 'Metformin 500mg × 90 tabs', time: '9:15 AM', urgent: false },
     { patient: 'Michael Chen', doctor: 'Dr. Harrison', meds: 'Atorvastatin 40mg × 30 tabs', time: '10:45 AM', urgent: false },
     { patient: 'James Williams', doctor: 'Dr. Al-Hassan', meds: 'Insulin Glargine × 3 vials', time: '11:30 AM', urgent: true },
-  ];
+  ]);
 
   return (
     <DashboardLayout>
@@ -147,7 +268,7 @@ export default function PharmacyDashboard() {
             <button onClick={() => setShowRestock(null)} className="btn-secondary text-sm py-2.5">
               <RefreshCw className="w-4 h-4" /> Restock Order
             </button>
-            <button onClick={() => showToast('Add medicine form opened')} className="btn-primary text-sm py-2.5">
+            <button onClick={() => setShowAddMedicine('new')} className="btn-primary text-sm py-2.5">
               <Plus className="w-4 h-4" /> Add Medicine
             </button>
           </div>
@@ -199,8 +320,16 @@ export default function PharmacyDashboard() {
                       <div className="flex gap-1">
                         <button onClick={() => setShowRestock(drug)} className="text-xs text-primary-600 font-semibold hover:underline">Restock</button>
                         <span className="text-gray-300">|</span>
-                        <button onClick={() => showToast(`Editing ${drug.name}`)} className="p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors">
+                        <button onClick={() => setShowAddMedicine(drug)} title="Edit medicine" className="p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors">
                           <Edit2 className="w-3 h-3" />
+                        </button>
+                        <button onClick={() => {
+                          if (window.confirm(`Delete ${drug.name} from inventory?`)) {
+                            setInventory(prev => prev.filter(d => d.id !== drug.id));
+                            showToast(`${drug.name} removed`);
+                          }
+                        }} title="Delete medicine" className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     </td>
@@ -230,7 +359,7 @@ export default function PharmacyDashboard() {
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => setDispenseRx(rx)} className="btn-primary text-xs py-1.5 px-3">Dispense</button>
-                  <button onClick={() => showToast('Prescription declined')} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                  <button onClick={() => { setPendingRx(prev => prev.filter((_, idx) => idx !== i)); showToast('Prescription declined'); }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -264,6 +393,13 @@ export default function PharmacyDashboard() {
             ))}
           </div>
         </div>
+      {showAddMedicine !== null && (
+        <AddMedicineModal
+          initialDrug={typeof showAddMedicine === 'object' ? showAddMedicine ?? undefined : undefined}
+          onClose={() => setShowAddMedicine(null)}
+          onAdd={handleAddMedicine}
+        />
+      )}
       </div>
     </DashboardLayout>
   );

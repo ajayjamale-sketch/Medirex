@@ -74,9 +74,9 @@ const ROLE_NAV: Record<UserRole, NavItem[]> = {
   ],
   lab: [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/lab-dash' },
-    { label: 'Test Requests', icon: Microscope, path: '/diagnostics' },
-    { label: 'Sample Tracking', icon: Activity, path: '/diagnostics?tab=tracking' },
-    { label: 'Reports', icon: FileText, path: '/emr' },
+    { label: 'Test Requests', icon: Microscope, path: '/lab-dash?tab=requests' },
+    { label: 'Sample Tracking', icon: Activity, path: '/lab-dash?tab=tracking' },
+    { label: 'Reports', icon: FileText, path: '/lab-dash?tab=reports' },
     { label: 'Billing', icon: CreditCard, path: '/billing' },
     { label: 'Analytics', icon: BarChart3, path: '/analytics' },
     { label: 'Notifications', icon: Bell, path: '/notifications', badge: 3, badgeType: 'info' },
@@ -147,7 +147,7 @@ export default function Sidebar() {
       const [pathname, search] = path.split('?');
       return location.pathname === pathname && location.search === `?${search}`;
     }
-    return location.pathname === path;
+    return location.pathname === path && !location.search.includes('tab=');
   };
 
   return (

@@ -4,6 +4,7 @@ import { MOCK_APPOINTMENTS, MOCK_DOCTORS } from '@/constants/mockData';
 import { Calendar, Plus, Search, Video, MapPin, ChevronLeft, ChevronRight, Clock, Check, X, User, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Appointment } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -69,6 +70,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function Appointments() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [appointments, setAppointments] = useState(MOCK_APPOINTMENTS);
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
@@ -82,7 +84,8 @@ export default function Appointments() {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  const filtered = appointments.filter(a =>
+  const visibleAppointments = user?.role === 'doctor' ? appointments : (user ? appointments.filter(a => a.patientId === user.id) : appointments);
+  const filtered = visibleAppointments.filter(a =>
     (statusFilter === 'All' || a.status === statusFilter) &&
     (typeFilter === 'All' || a.type === typeFilter) &&
     (a.patientName.toLowerCase().includes(search.toLowerCase()) || a.doctorName.toLowerCase().includes(search.toLowerCase()))
@@ -110,8 +113,15 @@ export default function Appointments() {
   const handleBook = () => {
     const doc = MOCK_DOCTORS.find(d => d.id === selectedDoctor);
     if (!doc || !bookingData.date || !bookingData.time) return;
+    const patientId = user?.id || 'p001';
+    const patientName = user?.name || 'Sarah Johnson';
+    const conflict = appointments.some(a => a.patientId === patientId && a.date === bookingData.date && a.time === bookingData.time && a.doctorId === doc.id);
+    if (conflict) {
+      showToast('You already have a booking with this doctor at that time.');
+      return;
+    }
     const newApt: Appointment = {
-      id: `apt${Date.now()}`, patientId: 'p001', patientName: 'Sarah Johnson',
+      id: `apt${Date.now()}`, patientId, patientName,
       doctorId: doc.id, doctorName: doc.name, specialization: doc.specialization,
       date: bookingData.date, time: bookingData.time, type: bookingData.type as 'In-Person' | 'Telemedicine',
       status: 'Scheduled', reason: bookingData.reason || 'Consultation', fee: doc.consultationFee,
@@ -138,9 +148,11 @@ export default function Appointments() {
             <h1 className="text-2xl font-bold text-gray-900 font-display">Appointments</h1>
             <p className="text-gray-500 text-sm mt-0.5">Schedule, manage, and track all appointments</p>
           </div>
-          <button onClick={() => setShowBookModal(true)} className="btn-primary text-sm py-2.5">
-            <Plus className="w-4 h-4" /> Book Appointment
-          </button>
+          {user?.role === 'patient' && (
+            <button onClick={() => setShowBookModal(true)} className="btn-primary text-sm py-2.5">
+              <Plus className="w-4 h-4" /> Book Appointment
+            </button>
+          )}
         </div>
 
         {/* Stats */}

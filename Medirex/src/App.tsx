@@ -34,6 +34,7 @@ import Compliance from '@/pages/Compliance';
 import Notifications from '@/pages/Notifications';
 import Profile from '@/pages/Profile';
 import Settings from '@/pages/Settings';
+import Unauthorized from '@/pages/Unauthorized';
 
 // New Pages
 import About from '@/pages/About';
@@ -62,8 +63,8 @@ const ROLE_HOME: Record<UserRole, string> = {
   admin: '/admin',
 };
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: UserRole[] }) {
+  const { isAuthenticated, isLoading, user } = useAuth();
   if (isLoading) return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
       <div className="text-center">
@@ -73,6 +74,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     </div>
   );
   if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
+  // If allowedRoles provided, ensure user has one of the roles
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    // Redirect to unauthorized page with CTAs
+    return <Navigate to="/unauthorized" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -104,13 +110,15 @@ function AppRoutes() {
       <Route path="/legal/terms" element={<Terms />} />
       <Route path="/resources/help" element={<HelpCenter />} />
 
+      <Route path="/unauthorized" element={<Unauthorized />} />
+
       {/* Protected - Dashboards */}
-      <Route path="/patient" element={<ProtectedRoute><PatientDashboard /></ProtectedRoute>} />
-      <Route path="/doctor" element={<ProtectedRoute><DoctorDashboard /></ProtectedRoute>} />
-      <Route path="/hospital" element={<ProtectedRoute><HospitalDashboard /></ProtectedRoute>} />
-      <Route path="/pharmacy-dash" element={<ProtectedRoute><PharmacyDashboard /></ProtectedRoute>} />
-      <Route path="/lab-dash" element={<ProtectedRoute><LabDashboard /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+      <Route path="/patient" element={<ProtectedRoute allowedRoles={[ 'patient' ]}><PatientDashboard /></ProtectedRoute>} />
+      <Route path="/doctor" element={<ProtectedRoute allowedRoles={[ 'doctor' ]}><DoctorDashboard /></ProtectedRoute>} />
+      <Route path="/hospital" element={<ProtectedRoute allowedRoles={[ 'hospital_staff' ]}><HospitalDashboard /></ProtectedRoute>} />
+      <Route path="/pharmacy-dash" element={<ProtectedRoute allowedRoles={[ 'pharmacy' ]}><PharmacyDashboard /></ProtectedRoute>} />
+      <Route path="/lab-dash" element={<ProtectedRoute allowedRoles={[ 'lab' ]}><LabDashboard /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute allowedRoles={[ 'admin' ]}><AdminPanel /></ProtectedRoute>} />
 
       {/* Protected - Modules */}
       <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
@@ -128,10 +136,10 @@ function AppRoutes() {
       <Route path="/wellness" element={<ProtectedRoute><Wellness /></ProtectedRoute>} />
 
       {/* Protected - Patient-specific */}
-      <Route path="/patient/setup" element={<ProtectedRoute><MedicalProfile /></ProtectedRoute>} />
+      <Route path="/patient/setup" element={<ProtectedRoute allowedRoles={[ 'patient' ]}><MedicalProfile /></ProtectedRoute>} />
 
       {/* Protected - Hospital-specific */}
-      <Route path="/hospital/staff-schedule" element={<ProtectedRoute><StaffScheduling /></ProtectedRoute>} />
+      <Route path="/hospital/staff-schedule" element={<ProtectedRoute allowedRoles={[ 'hospital_staff' ]}><StaffScheduling /></ProtectedRoute>} />
 
       {/* Catch all */}
       <Route path="*" element={

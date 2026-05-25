@@ -1,0 +1,5 @@
+[2026-05-21T09:46:55.123Z] [INIT] Deep Copilot debug log started. file=d:\AUX-Projects\Medirex - Frontend MVP\Medirex-main\.deep-copilot\logs\session-2026-05-21T09-46-55-122Z.log
+[2026-05-21T09:46:55.123Z] [ACTIVATE] {"version":"0.35.3"}
+[2026-05-21T09:46:55.123Z] [TERMINAL_MONITOR_STARTED] {}
+[2026-05-21T09:46:55.123Z] [STATUSBAR_REGISTERED] {"id":"deepseekAgent.statusBar"}
+[2026-05-21T09:46:55.125Z] [INLINE_COMPLETION_REGISTERED]
