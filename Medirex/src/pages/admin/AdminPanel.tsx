@@ -551,7 +551,7 @@ export default function AdminPanel() {
 
                 {/* Section 4: Emergency Ward ICU status */}
                 <div className="medical-card p-5">
-                  <h3 className="font-bold text-gray-900 text-sm font-display mb-3">Section 4: Live Emergency ICU Bed Status</h3>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm font-display mb-3">Section 4: Live Emergency ICU Bed Status</h3>
                   <div className="grid grid-cols-4 gap-2">
                     {icuBeds.map(b => (
                       <button
@@ -561,11 +561,11 @@ export default function AdminPanel() {
                           showToast(`Toggled ${b.bed} admission state`);
                         }}
                         className={`p-3 border rounded-xl text-center transition-all ${
-                          b.occupied ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'
+                          b.occupied ? 'bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800' : 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800'
                         }`}
                       >
-                        <p className="text-xs font-bold text-slate-800">{b.bed}</p>
-                        <p className="text-[10px] font-semibold opacity-70 mt-0.5">{b.occupied ? 'Occupied' : 'Free'}</p>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{b.bed}</p>
+                        <p className="text-[10px] font-semibold opacity-70 mt-0.5 dark:text-slate-400">{b.occupied ? 'Occupied' : 'Free'}</p>
                       </button>
                     ))}
                   </div>

@@ -253,9 +253,10 @@ export default function PatientDashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
               {[
                 { icon: Video, label: 'Telemedicine', color: 'bg-primary-50 text-primary-600', path: '/telemedicine' },
+                { icon: FileText, label: 'Medical Records', color: 'bg-blue-50 text-blue-600', path: '/emr' },
                 { icon: FileText, label: 'My Reports', color: 'bg-purple-50 text-purple-600', path: '/diagnostics' },
                 { icon: Pill, label: 'Order Meds', color: 'bg-amber-50 text-amber-600', path: '/pharmacy' },
                 { icon: Activity, label: 'Health Track', color: 'bg-emerald-50 text-emerald-600', path: '/wellness' },
@@ -263,7 +264,7 @@ export default function PatientDashboard() {
                 const Icon = action.icon;
                 return (
                   <button key={action.label} onClick={() => navigate(action.path)}
-                    className={`medical-card p-4 flex flex-col items-center gap-2 text-center ${action.color} hover:scale-105`}>
+                    className={`medical-card p-4 flex flex-col items-center justify-center gap-2 text-center ${action.color} hover:scale-105 transition-transform`}>
                     <Icon className="w-6 h-6" />
                     <span className="text-xs font-semibold">{action.label}</span>
                   </button>

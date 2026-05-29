@@ -10,8 +10,17 @@ import { useTheme } from '@/contexts/ThemeContext';
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+
+  const ROLE_HOME: Record<string, string> = {
+    patient: '/patient',
+    doctor: '/doctor',
+    hospital_staff: '/hospital',
+    pharmacy: '/pharmacy-dash',
+    lab: '/lab-dash',
+    admin: '/admin',
+  };
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -96,7 +105,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             {isAuthenticated ? (
               <>
                 <button
-                  onClick={() => navigate('/patient')}
+                  onClick={() => navigate(user ? ROLE_HOME[user.role] : '/patient')}
                   className="btn-ghost text-sm py-2 px-4"
                 >
                   My Portal
@@ -169,7 +178,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               {isAuthenticated ? (
                 <>
                   <button
-                    onClick={() => navigate('/patient')}
+                    onClick={() => navigate(user ? ROLE_HOME[user.role] : '/patient')}
                     className="flex-1 btn-ghost text-center py-2 text-sm justify-center"
                   >
                     My Portal

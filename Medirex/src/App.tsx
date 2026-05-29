@@ -74,10 +74,9 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
     </div>
   );
   if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
-  // If allowedRoles provided, ensure user has one of the roles
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    // Redirect to unauthorized page with CTAs
-    return <Navigate to="/unauthorized" replace />;
+    // Redirect to their own dashboard instead of the unauthorized page
+    return <Navigate to={ROLE_HOME[user.role]} replace />;
   }
   return <>{children}</>;
 }

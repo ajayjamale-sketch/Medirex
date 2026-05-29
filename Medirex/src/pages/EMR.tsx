@@ -492,16 +492,16 @@ export default function EMR() {
         </div>
 
         {/* TABS */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {['overview', 'history', 'prescriptions', 'labs', 'notes'].map(
             tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
-                className={`px-4 py-2 rounded-xl text-sm ${
+                className={`px-4 py-2 rounded-xl text-sm capitalize transition-colors ${
                   activeTab === tab
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-gray-100'
+                    ? 'bg-primary-500 text-white shadow-sm'
+                    : 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700'
                 }`}
               >
                 {tab}
